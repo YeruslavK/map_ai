@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Map AI</title>
+    <link rel="stylesheet" href="styles.css" />
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css"
+    />
+
+    <!-- Leaflet JS -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"
+      defer
+    ></script>
+  </head>
+  <body>
+    <header>
+      <nav>
+        <ul>
+          <li><a href="#home">Home</a></li>
+          <li><a href="#login">Login</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main>
+      <section id="map-generator">
+        <h1>Create Your AI-Powered Holiday Map</h1>
+
+        <div class="map-generator-wrapper">
+          <!-- Form -->
+          <div class="form-container">
+            <form id="map-form">
+              <label for="destination">Destination:</label>
+              <input
+                type="text"
+                id="destination"
+                name="destination"
+                placeholder="e.g. Rome, Italy"
+                required
+              />
+
+              <!-- holiday type -->
+              <label for="holiday-type">Type of Holiday:</label>
+              <select id="holiday-type" name="holiday-type">
+                <option value="relaxation">Relaxation</option>
+                <option value="adventure">Adventure</option>
+                <option value="culture">Culture</option>
+                <option value="party">Party</option>
+                <option value="romantic">Romantic</option>
+                <option value="romantic">Nature & Outdoors</option>
+              </select>
+
+              <!-- number of days -->
+              <label for="duration">Duration (days):</label>
+              <input
+                type="number"
+                id="duration"
+                name="duration"
+                min="1"
+                placeholder="e.g. 5"
+                required
+              />
+
+              <!-- food-prefrences -->
+              <label for="food-prefrences">Food Preferences: </label>
+              <div class="food-prefrences-options">
+                <div class="food-prefrences" data-value="Vegetarian">
+                  Vegetarian
+                </div>
+                <div class="food-prefrences" data-value="Vegan">Vegan</div>
+                <div class="food-prefrences" data-value="Seafood">Seafood</div>
+                <div class="food-prefrences" data-value="Meat-heavy">
+                  Meat-heavy (BBQ, steakhouse)
+                </div>
+                <div class="food-prefrences" data-value="Fast-food">
+                  Fast food
+                </div>
+                <div class="food-prefrences" data-value="Fine-dining">
+                  Fine dining
+                </div>
+                <div class="food-prefrences" data-value="Cafes-bakeries">
+                  Cafes & bakeries
+                </div>
+                <div class="food-prefrences" data-value="Local-cuisine">
+                  Local cuisine
+                </div>
+              </div>
+
+              <!-- select landmarks -->
+              <label for="landmark">
+                Any specific places or landmarks you want to visit?
+              </label>
+              <input
+                type="text"
+                id="landmark"
+                placeholder="Colosseum, Big Ben, etc.."
+              />
+
+              <!-- activity level -->
+              <label for="activity-level"
+                >How active do you want to be on this trip?</label
+              >
+              <select name="activity-level" id="activity-level">
+                <option value="low">Low (Relaxing, minimal walking)</option>
+                <option value="medium">
+                  Medium (Some walking/sightseeing)
+                </option>
+                <option value="high">High (Active exploring, hiking)</option>
+              </select>
+
+              <!-- travel companion -->
+              <label for="travel-companion">Who are you traveling with?</label>
+              <select name="travel-companion" id="travel-companion">
+                <option value="solo">Solo</option>
+                <option value="couple">Couple</option>
+                <option value="friends">Friends</option>
+                <option value="family">Family</option>
+              </select>
+
+              <!-- budget -->
+              <label for="budget">What is your trip budget?</label>
+              <select name="budget" id="budget">
+                <option value="low-budget">Low Budget</option>
+                <option value="medium-budget">Medium Budget</option>
+                <option value="high-budget">High Budget</option>
+              </select>
+
+              <button type="submit">Generate Map</button>
+            </form>
+          </div>
+
+          <!-- Map -->
+          <div class="map-container" id="map-result">
+            <div id="map"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>© 2025 Map AI. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
