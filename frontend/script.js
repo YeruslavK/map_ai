@@ -1,10 +1,16 @@
 document.addEventListener("DOMContentLoaded", () => {
   const map = L.map("map").setView([41.89024611192267, 12.492338185100092], 14);
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  }).addTo(map);
+  const mainLayer = L.tileLayer(
+    "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png",
+    {
+      minZoom: 3,
+      maxZoom: 18,
+      attribution:
+        '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a>, &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }
+  );
+  mainLayer.addTo(map);
 
   const marker = L.marker([41.89024611192267, 12.492338185100092]).addTo(map);
   marker.bindPopup("<b>Welcome!</b><br>Your trip starts here.").openPopup();
@@ -54,15 +60,33 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to generate trip");
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to generate trip");
       }
 
       const pinpoints = await response.json();
       console.log("Generated Pinpoints:", pinpoints);
 
+      if (!pinpoints || pinpoints.length === 0) {
+        throw new Error(
+          "No valid locations found. Please try a different destination or modify your preferences."
+        );
+      }
+
+      // Clear existing markers
+      map.eachLayer((layer) => {
+        if (layer instanceof L.Marker) {
+          map.removeLayer(layer);
+        }
+      });
+
       // Add markers to map
       pinpoints.forEach((place) => {
+        if (!place.latitude || !place.longitude) {
+          console.warn(`Skipping invalid coordinates for ${place.name}`);
+          return;
+        }
+
         const emoji = extractEmoji(place.type);
 
         const customIcon = L.divIcon({
@@ -75,8 +99,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
         L.marker([place.latitude, place.longitude], { icon: customIcon })
           .addTo(map)
-          .bindPopup(`<b>${place.name}</b><br>Type: ${place.type}`);
+          .bindPopup(
+            `<b>${place.name}</b><br>Type: ${place.type}<br>Address: ${
+              place.address || "N/A"
+            }`
+          );
       });
+
+      // Fit map to show all markers
+      const bounds = L.latLngBounds(
+        pinpoints.map((p) => [p.latitude, p.longitude])
+      );
+      map.fitBounds(bounds);
     } catch (error) {
       console.error("Error:", error);
       if (error.message.includes("not reachable")) {

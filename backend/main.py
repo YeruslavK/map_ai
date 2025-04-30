@@ -17,27 +17,23 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Load environment variables
 load_dotenv()
 
-# Set up the OpenAI API key globally
 client = OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY"),
 )
 logger.info(f"OpenAI API Key available: {client.api_key is not None}")
 
-# FastAPI setup
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins in development
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Pydantic model for the trip request
 class TripRequest(BaseModel):
     destination: str
     duration: int
@@ -50,10 +46,8 @@ def geocode_location(location_name: str, city: str) -> Dict[str, float]:
     """
     Get coordinates for a location using OpenStreetMap's Nominatim service.
     """
-    # Add a small delay to respect Nominatim's usage policy
     time.sleep(1)
     
-    # Format the query to include both location name and city
     query = f"{location_name}, {city}"
     url = f"https://nominatim.openstreetmap.org/search?format=json&q={query}"
     
@@ -66,11 +60,17 @@ def geocode_location(location_name: str, city: str) -> Dict[str, float]:
             logger.warning(f"No results found for location: {query}")
             return None
             
-        # Get the first result (most relevant)
         result = data[0]
+        lat = float(result['lat'])
+        lon = float(result['lon'])
+        
+        if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+            logger.error(f"Invalid coordinates received for {query}: lat={lat}, lon={lon}")
+            return None
+            
         return {
-            'latitude': float(result['lat']),
-            'longitude': float(result['lon'])
+            'latitude': lat,
+            'longitude': lon
         }
     except Exception as e:
         logger.error(f"Geocoding error for {query}: {str(e)}")
@@ -119,7 +119,6 @@ def extract_json_from_response(response):
         text = response.choices[0].message.content
         logger.info(f"Raw OpenAI response text: {text}")
 
-        # Try to find JSON in the response if it's not pure JSON
         if not text.strip().startswith('['):
             json_match = re.search(r'\[.*\]', text, re.DOTALL)
             if json_match:
@@ -132,7 +131,6 @@ def extract_json_from_response(response):
         if not isinstance(parsed_json, list):
             raise ValueError("Response is not a JSON array")
         
-        # Validate the structure of each item
         for item in parsed_json:
             if not all(key in item for key in ['name', 'type', 'address']):
                 raise ValueError("One or more items missing required fields")
@@ -158,11 +156,9 @@ async def generate_trip(data: TripRequest):
         prompt = build_prompt(data)
         logger.info(f"Generated Prompt: {prompt}")
 
-        # Validate OpenAI API key
         if not client.api_key:
             raise HTTPException(status_code=500, detail="OpenAI API key is not configured")
 
-        # Call OpenAI's API to generate a response
         logger.info("Calling OpenAI API...")
         try:
             response = client.chat.completions.create(
@@ -179,22 +175,30 @@ async def generate_trip(data: TripRequest):
             logger.error(f"OpenAI API call failed: {str(api_error)}")
             raise HTTPException(status_code=500, detail=f"OpenAI API call failed: {str(api_error)}")
 
-        # Get the list of places from OpenAI
         places = extract_json_from_response(response)
         
-        # Geocode each place to get accurate coordinates
+        valid_places = []
         for place in places:
-            coords = geocode_location(place['name'], data.destination)
-            if coords:
-                place['latitude'] = coords['latitude']
-                place['longitude'] = coords['longitude']
-            else:
-                logger.warning(f"Could not geocode location: {place['name']}")
-                # Remove places that couldn't be geocoded
-                places.remove(place)
+            try:
+                coords = geocode_location(place['name'], data.destination)
+                if coords:
+                    place['latitude'] = coords['latitude']
+                    place['longitude'] = coords['longitude']
+                    valid_places.append(place)
+                    logger.info(f"Successfully geocoded {place['name']} to coordinates {coords}")
+                else:
+                    logger.warning(f"Could not geocode location: {place['name']} in {data.destination}")
+            except Exception as e:
+                logger.error(f"Error processing location {place['name']}: {str(e)}")
         
-        logger.info(f"Successfully processed {len(places)} locations")
-        return places
+        if not valid_places:
+            raise HTTPException(
+                status_code=404,
+                detail="No valid locations could be found with coordinates. Please try a different destination or modify your preferences."
+            )
+        
+        logger.info(f"Successfully processed {len(valid_places)} locations")
+        return valid_places
     except HTTPException:
         raise
     except Exception as e:
