@@ -58,3 +58,6 @@ yarn-error.log*
 *.tmp
 *.temp
 .cache/ 
+
+# Folders
+*frontend_old
